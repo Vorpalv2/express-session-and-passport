@@ -7,15 +7,10 @@ const app = express();
 //configuration//
 app.set(`view engine`, `ejs`);
 
-//injecting middlewares//
-app.use(
-  session({
-    resave: false,
-    saveUninitialized: false,
-    secret: "drivingmylove",
-  })
-);
 app.use(express.urlencoded({ extended: true }));
+app.use(
+  session({ resave: false, saveUninitialized: false, secret: "XX-Intro" })
+);
 app.use(passport.initialize());
 app.use(passport.session());
 passport.use(UserModel.createStrategy());
@@ -27,7 +22,6 @@ DatabaseConnection().then(() => console.log("Connected to Database"));
 
 app.get(`/`, (req, res) => res.render("home"));
 
-//login Routes//
 app.get(`/login`, (req, res) => res.render(`login`));
 app.post(`/login`, (req, res) => {
   const newUser = new UserModel({
@@ -37,17 +31,31 @@ app.post(`/login`, (req, res) => {
   req.login(newUser, (err) => {
     if (err) {
       console.log(err);
-    } else {
-      passport.authenticate("local")(req, res, () => {
-        res.redirect(`/secrets`);
-      });
     }
+    passport.authenticate("local")(req, res, () => res.redirect(`/secrets`));
   });
 });
-//
 
-//Register Routes//
-app.get(`/register`, (req, res) => res.render(`register`));
+app.get(`/secrets`, (req, res) => {
+  if (req.isAuthenticated()) {
+    res.render(`secrets`);
+  } else {
+    res.redirect(`/errorpage`);
+  }
+});
+
+app.get(`/errorpage`, (req, res) => {
+  res.render(`errorpage`);
+});
+
+app.get(`/logout`, (req, res) => {
+  req.logout((err) => (err ? console.log(err) : res.redirect(`/`)));
+});
+
+app.get(`/register`, (req, res) => {
+  res.render(`register`);
+});
+
 app.post(`/register`, (req, res) => {
   const newUser = new UserModel({
     username: req.body.username,
@@ -57,10 +65,10 @@ app.post(`/register`, (req, res) => {
   UserModel.register(
     { username: newUser.username },
     newUser.password,
-    (err) => {
+    (err, user) => {
       if (err) {
         console.log(err);
-        res.redirect(`/`);
+        res.redirect(`/errorpage`);
       } else {
         passport.authenticate("local")(req, res, () => {
           res.redirect(`/secrets`);
@@ -68,29 +76,4 @@ app.post(`/register`, (req, res) => {
       }
     }
   );
-});
-
-//logout route
-
-app.get(`/logout`, (req, res) => {
-  req.logout((err) => {
-    if (err) {
-      console.log(err);
-    }
-    res.redirect(`/`);
-  });
-});
-
-//secrets route
-
-app.get(`/secrets`, (req, res) => {
-  if (req.isAuthenticated()) {
-    res.render(`secrets`);
-  } else if (req.isUnauthenticated()) {
-    res.redirect(`/errorpage`);
-  }
-});
-
-app.get(`/errorpage`, (req, res) => {
-  res.render(`errorpage`);
 });
