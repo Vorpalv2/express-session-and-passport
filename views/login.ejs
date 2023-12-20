@@ -1,7 +1,7 @@
 <%- include('partials/header') %>
 
 <div class="container mt-5">
-  <h1>Login</h1>
+  <h1 class="darkMode">Login</h1>
 
   <div class="row">
     <div class="col-sm-8">
@@ -9,7 +9,7 @@
         <div class="card-body">
           <!-- Makes POST request to /login route -->
           <form action="/login" method="POST">
-            <div class="form-group">
+            <div class="form-group lightMode">
               <label for="email">Email</label>
               <input type="email" class="form-control" name="username" />
             </div>

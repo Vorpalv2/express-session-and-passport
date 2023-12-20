@@ -1,11 +1,10 @@
-
 body {
-  background-color: #E8ECEF;
+  background-color: #e8ecef;
 }
 
 .centered {
-    padding-top: 200px;
-    text-align: center;
+  padding-top: 200px;
+  text-align: center;
 }
 
 .secret-text {
@@ -13,4 +12,22 @@ body {
   font-size: 2rem;
   color: #fff;
   background-color: #000;
+}
+
+.lightMode {
+  background-color: white;
+  color: black;
+  .form-control {
+    color: black;
+    background-color: white;
+  }
+}
+
+.darkMode {
+  background-color: black;
+  color: white;
+}
+
+h1 {
+  color: brown;
 }

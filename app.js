@@ -1,38 +1,61 @@
 const express = require(`express`);
 const UserModel = require(`./schema/Users`);
 const DatabaseConnection = require(`./db`);
-const passport = require("passport");
+const Passport = require("passport");
 const session = require("express-session");
 const app = express();
+
+app.listen(3000, () => console.log("Port 3000"));
+DatabaseConnection().then((response) =>
+  console.log(`Database Connected since : ${response.now().toLocaleString()}`)
+);
 //configuration//
 app.set(`view engine`, `ejs`);
 
-app.use(express.urlencoded({ extended: true }));
+//injecting middlewares
+app.use(express.static("public"));
 app.use(
-  session({ resave: false, saveUninitialized: false, secret: "XX-Intro" })
+  session({
+    resave: false,
+    saveUninitialized: false,
+    secret: "cantstopthisloneliness",
+  })
 );
-app.use(passport.initialize());
-app.use(passport.session());
-passport.use(UserModel.createStrategy());
-passport.serializeUser(UserModel.serializeUser());
-passport.deserializeUser(UserModel.deserializeUser());
+app.use(express.urlencoded({ extended: true }));
+app.use(Passport.initialize());
+app.use(Passport.session());
+Passport.use(UserModel.createStrategy());
+Passport.serializeUser(UserModel.serializeUser());
+Passport.deserializeUser(UserModel.deserializeUser());
 
-app.listen(3000, () => console.log(`Listening on Port 3000`));
-DatabaseConnection().then(() => console.log("Connected to Database"));
+app.get(`/`, (req, res) => {
+  res.render(`home`);
+});
 
-app.get(`/`, (req, res) => res.render("home"));
-
-app.get(`/login`, (req, res) => res.render(`login`));
+app.get(`/login`, (req, res) => res.render("login"));
 app.post(`/login`, (req, res) => {
   const newUser = new UserModel({
     username: req.body.username,
     password: req.body.password,
   });
-  req.login(newUser, (err) => {
-    if (err) {
-      console.log(err);
+
+  req.login(newUser, async (err) => {
+    const findByUsername = await UserModel.findOne({
+      username: newUser.username,
+    });
+
+    if (!findByUsername) {
+      res.redirect(`/errorpage`);
+    } else {
+      if (err) {
+        console.log(err);
+      } else {
+        Passport.authenticate("local")(req, res, () =>
+          res.redirect(`/secrets`)
+        );
+        console.log(findByUsername);
+      }
     }
-    passport.authenticate("local")(req, res, () => res.redirect(`/secrets`));
   });
 });
 
@@ -44,17 +67,18 @@ app.get(`/secrets`, (req, res) => {
   }
 });
 
-app.get(`/errorpage`, (req, res) => {
-  res.render(`errorpage`);
+app.get(`/errorpage`, (req, res) => res.render("errorpage"));
+
+app.get(`/logout`, (req, res, next) => {
+  req.logout((err) => {
+    if (err) {
+      next(err);
+    }
+    res.redirect(`/`);
+  });
 });
 
-app.get(`/logout`, (req, res) => {
-  req.logout((err) => (err ? console.log(err) : res.redirect(`/`)));
-});
-
-app.get(`/register`, (req, res) => {
-  res.render(`register`);
-});
+app.get(`/register`, (req, res) => res.render("register"));
 
 app.post(`/register`, (req, res) => {
   const newUser = new UserModel({
@@ -65,12 +89,11 @@ app.post(`/register`, (req, res) => {
   UserModel.register(
     { username: newUser.username },
     newUser.password,
-    (err, user) => {
+    (err) => {
       if (err) {
         console.log(err);
-        res.redirect(`/errorpage`);
       } else {
-        passport.authenticate("local")(req, res, () => {
+        Passport.authenticate("local")(req, res, () => {
           res.redirect(`/secrets`);
         });
       }
