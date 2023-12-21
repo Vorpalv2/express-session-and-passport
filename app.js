@@ -1,60 +1,47 @@
 const express = require(`express`);
-const UserModel = require(`./schema/Users`);
-const DatabaseConnection = require(`./db`);
-const Passport = require("passport");
-const session = require("express-session");
 const app = express();
+const mongoose = require(`mongoose`);
+const connectToDB = require(`./db`);
+const UserSchema = require(`./schema/Users`);
+const session = require(`express-session`);
+const passport = require(`passport`);
 
-app.listen(3000, () => console.log("Port 3000"));
-DatabaseConnection().then((response) =>
-  console.log(`Database Connected since : ${response.now().toLocaleString()}`)
-);
-//configuration//
-app.set(`view engine`, `ejs`);
-
-//injecting middlewares
-app.use(express.static("public"));
+app.use(express.urlencoded({ extended: false }));
 app.use(
   session({
     resave: false,
     saveUninitialized: false,
-    secret: "cantstopthisloneliness",
+    secret: "secret-way",
   })
 );
-app.use(express.urlencoded({ extended: true }));
-app.use(Passport.initialize());
-app.use(Passport.session());
-Passport.use(UserModel.createStrategy());
-Passport.serializeUser(UserModel.serializeUser());
-Passport.deserializeUser(UserModel.deserializeUser());
+app.use(passport.initialize());
+app.use(passport.session());
+passport.use(UserSchema.createStrategy());
+passport.serializeUser(UserSchema.serializeUser());
+passport.deserializeUser(UserSchema.deserializeUser());
+//
+app.set("view engine", "ejs");
 
-app.get(`/`, (req, res) => {
-  res.render(`home`);
-});
+app.listen(3000, () => console.log(`3000`));
+connectToDB().then(() =>
+  console.log(`connected to Database @ ${mongoose.now().toLocaleString()}`)
+);
 
-app.get(`/login`, (req, res) => res.render("login"));
+app.get(`/`, (req, res) => res.render(`home`));
+app.get(`/login`, (req, res) => res.render(`login`));
 app.post(`/login`, (req, res) => {
-  const newUser = new UserModel({
+  const newUser = new UserSchema({
     username: req.body.username,
     password: req.body.password,
   });
-
-  req.login(newUser, async (err) => {
-    const findByUsername = await UserModel.findOne({
-      username: newUser.username,
-    });
-
-    if (!findByUsername) {
+  req.login(newUser, (err) => {
+    if (err) {
+      console.log(err);
       res.redirect(`/errorpage`);
     } else {
-      if (err) {
-        console.log(err);
-      } else {
-        Passport.authenticate("local")(req, res, () =>
-          res.redirect(`/secrets`)
-        );
-        console.log(findByUsername);
-      }
+      passport.authenticate("local")(req, res, () => {
+        res.redirect(`/secrets`);
+      });
     }
   });
 });
@@ -67,33 +54,33 @@ app.get(`/secrets`, (req, res) => {
   }
 });
 
-app.get(`/errorpage`, (req, res) => res.render("errorpage"));
+app.get(`/errorpage`, (req, res) => res.render(`errorpage`));
 
 app.get(`/logout`, (req, res, next) => {
   req.logout((err) => {
-    if (err) {
-      next(err);
-    }
-    res.redirect(`/`);
+    next(err);
   });
+  res.redirect(`/`);
 });
 
-app.get(`/register`, (req, res) => res.render("register"));
-
+app.get(`/register`, (req, res) => res.render(`register`));
 app.post(`/register`, (req, res) => {
-  const newUser = new UserModel({
+  const newUser = new UserSchema({
     username: req.body.username,
     password: req.body.password,
   });
 
-  UserModel.register(
+  UserSchema.register(
     { username: newUser.username },
     newUser.password,
-    (err) => {
+    (err, createdUser) => {
       if (err) {
         console.log(err);
       } else {
-        Passport.authenticate("local")(req, res, () => {
+        passport.authenticate("local")(req, res, () => {
+          console.log(
+            `new user create with the ID of ${createdUser._id} and username ${createdUser.username}`
+          );
           res.redirect(`/secrets`);
         });
       }

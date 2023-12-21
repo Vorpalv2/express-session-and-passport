@@ -16,4 +16,5 @@ const userModel = new mongoose.Schema({
   },
 });
 userModel.plugin(PLM);
+
 module.exports = mongoose.model("UserCollection", userModel);
