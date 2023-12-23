@@ -15,6 +15,7 @@ const userModel = new mongoose.Schema({
     default: Date.now,
   },
 });
+
 userModel.plugin(PLM);
 
 module.exports = mongoose.model("UserCollection", userModel);
