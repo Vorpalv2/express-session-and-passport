@@ -1,6 +1,6 @@
 require("dotenv").config();
 const mongoose = require("mongoose");
-
+const PLM = require("passport-local-mongoose");
 const userModel = new mongoose.Schema(
   {
     username: {
@@ -9,15 +9,13 @@ const userModel = new mongoose.Schema(
     },
     password: {
       type: String,
-      require: true,
-    },
-    date: {
-      type: Date,
-      default: Date.now,
     },
   },
   {
     timestamps: true,
   }
 );
+
+userModel.plugin(PLM);
+
 module.exports = mongoose.model("UserCollection", userModel);
